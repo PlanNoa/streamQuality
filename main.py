@@ -13,21 +13,16 @@ st.set_page_config(
 # read csv from a URL
 @st.cache_data
 def get_data(path):
-    if type(path) == list:
-        df = pd.read_excel(path[0], sheet_name="Geolocation Accuracy", header=[0, 1], index_col=[0])
-        df = df.fillna("NA")
-        df = df[df["SW ID"]["EOLP"] != "NA"]
-        for i in range(1, len(path)):
-            df_temp = pd.read_excel(path[i], sheet_name="Geolocation Accuracy", header=[0, 1], index_col=[0])
-            df_temp = df_temp.fillna("NA")
-            df_temp = df_temp[df_temp["SW ID"]["EOLP"] != "NA"]
-            df = pd.concat([df, df_temp])
-    else:
-        df = pd.read_excel(path, sheet_name="Geolocation Accuracy", header=[0, 1], index_col=[0])
-        df = df.fillna("NA")
-        df = df[df["SW ID"]["EOLP"] != "NA"]
+    df = pd.read_excel(path[0], sheet_name="Geolocation Accuracy", header=[0, 1], index_col=[0])
+    df = df.fillna("NA")
+    df = df[df["SW ID"]["EOLP"] != "NA"]
+    for i in range(1, len(path)):
+        df_temp = pd.read_excel(path[i], sheet_name="Geolocation Accuracy", header=[0, 1], index_col=[0])
+        df_temp = df_temp.fillna("NA")
+        df_temp = df_temp[df_temp["SW ID"]["EOLP"] != "NA"]
+        df = pd.concat([df, df_temp])
+    df = df.replace("NA", np.nan)
     return df
-
 
 # dashboard title
 st.title("Level Product Analytics")
@@ -39,9 +34,12 @@ if len(file) > 0:
 
     # filters
     with st.expander("Search Filter"):
-        EOLP = st.multiselect("SW ID / EOLP", pd.unique(df["SW ID"]["EOLP"]),
-                              default=pd.unique(df["SW ID"]["EOLP"]))
-        FSW = st.multiselect("SW ID / FSW", pd.unique(df["SW ID"]["FSW"]), default=pd.unique(df["SW ID"]["FSW"]))
+        EOLP = st.multiselect("SW ID / EOLP",
+                              df["SW ID"]["EOLP"].dropna().unique(),
+                              default=df["SW ID"]["EOLP"].dropna().unique())
+        FSW = st.multiselect("SW ID / FSW",
+                             df["SW ID"]["FSW"].dropna().unique(),
+                             default=df["SW ID"]["FSW"].dropna().unique())
         start_date_col, end_date_col = st.columns(2)
         with start_date_col:
             start_date = st.date_input("Search Date Range Start",
@@ -50,10 +48,10 @@ if len(file) > 0:
             end_date = st.date_input("Search Date Range End",
                                      np.nanmax(df["Satellite Status"]["Strip Imaging Start Time"].dt.date))
         Duration = st.slider("Sunlight Duration",
-                             np.nanmin(df["Sunlit"]["Duration\n(sec)"]) - 1e-10,
-                             np.nanmax(df["Sunlit"]["Duration\n(sec)"]) + 1e-10,
-                             (np.nanmin(df["Sunlit"]["Duration\n(sec)"]),
-                              np.nanmax(df["Sunlit"]["Duration\n(sec)"])))
+                             float(np.nanmin(df["Sunlit"]["Duration\n(sec)"]) - 1e-10),
+                             float(np.nanmax(df["Sunlit"]["Duration\n(sec)"]) + 1e-10),
+                             (float(np.nanmin(df["Sunlit"]["Duration\n(sec)"])),
+                              float(np.nanmax(df["Sunlit"]["Duration\n(sec)"]))))
         STSFlag = st.multiselect("STS / STSFlag", pd.unique(df["STS"]["STSFlag"]),
                                  default=pd.unique(df["STS"]["STSFlag"]))
         Mode = st.multiselect("Operation / Mode", pd.unique(df["Operation"]["Mode"]),
@@ -71,30 +69,37 @@ if len(file) > 0:
         with roll_col:
             roll = st.slider("Attitude Roll",
                              -90., 90.,
-                             (np.nanmin(df["Attitude"]["Roll\n(deg)"]), np.nanmax(df["Attitude"]["Roll\n(deg)"])))
+                             (float(np.nanmin(df["Attitude"]["Roll\n(deg)"])),
+                              float(np.nanmax(df["Attitude"]["Roll\n(deg)"]))))
         with pitch_col:
             pitch = st.slider("Attitude Pitch",
                               -90., 90.,
-                              (np.nanmin(df["Attitude"]["Pitch\n(deg)"]), np.nanmax(df["Attitude"]["Pitch\n(deg)"])))
+                              (float(np.nanmin(df["Attitude"]["Pitch\n(deg)"])),
+                               float(np.nanmax(df["Attitude"]["Pitch\n(deg)"]))))
         with yaw_col:
             yaw = st.slider("Attitude Yaw",
                             -180., 180.,
-                            (np.nanmin(df["Attitude"]["Yaw\n(deg)"]), np.nanmax(df["Attitude"]["Yaw\n(deg)"])))
+                            (float(np.nanmin(df["Attitude"]["Yaw\n(deg)"])),
+                             float(np.nanmax(df["Attitude"]["Yaw\n(deg)"]))))
         Height_min_col, Height_max_col, Height_maxdiff_col = st.columns(3)
         with Height_min_col:
             Height_min = st.slider("Height Min",
-                                   np.nanmin(df["Height"]["Min.\n(m)"]) - 1e-10, np.nanmax(df["Height"]["Min.\n(m)"]) + 1e-10,
-                                   (np.nanmin(df["Height"]["Min.\n(m)"]), np.nanmax(df["Height"]["Min.\n(m)"])))
+                                   float(np.nanmin(df["Height"]["Min.\n(m)"]) - 1e-10),
+                                   float(np.nanmax(df["Height"]["Min.\n(m)"]) + 1e-10),
+                                   (float(np.nanmin(df["Height"]["Min.\n(m)"])),
+                                    float(np.nanmax(df["Height"]["Min.\n(m)"]))))
         with Height_max_col:
             Height_max = st.slider("Height Max",
-                                   np.nanmin(df["Height"]["Max.\n(m)"]) - 1e-10, np.nanmax(df["Height"]["Max.\n(m)"]) + 1e-10,
-                                   (np.nanmin(df["Height"]["Max.\n(m)"]), np.nanmax(df["Height"]["Max.\n(m)"])))
+                                   float(np.nanmin(df["Height"]["Max.\n(m)"]) - 1e-10),
+                                   float(np.nanmax(df["Height"]["Max.\n(m)"]) + 1e-10),
+                                   (float(np.nanmin(df["Height"]["Max.\n(m)"])),
+                                    float(np.nanmax(df["Height"]["Max.\n(m)"]))))
         with Height_maxdiff_col:
             Height_maxdiff = st.slider("Height MaxDiff",
-                                       np.nanmin(df["Height"]["MaxDiff.\n(m)"]) - 1e-10,
-                                       np.nanmax(df["Height"]["MaxDiff.\n(m)"]) + 1e-10,
-                                       (np.nanmin(df["Height"]["MaxDiff.\n(m)"]),
-                                        np.nanmax(df["Height"]["MaxDiff.\n(m)"])))
+                                       float(np.nanmin(df["Height"]["MaxDiff.\n(m)"]) - 1e-10),
+                                       float(np.nanmax(df["Height"]["MaxDiff.\n(m)"]) + 1e-10),
+                                       (float(np.nanmin(df["Height"]["MaxDiff.\n(m)"])),
+                                        float(np.nanmax(df["Height"]["MaxDiff.\n(m)"]))))
         CloudRatio = st.slider("Cloud Ratio",
                                0, 100,
                                (0, 100))
