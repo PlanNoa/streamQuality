@@ -1,16 +1,9 @@
-import time  # to simulate a real time data, time loop
+import time
 
-import numpy as np  # np mean, np random
-import pandas as pd  # read csv, df manipulation
-import streamlit as st  # 🎈 data web app development
+import numpy as np
+import pandas as pd
+import streamlit as st
 import matplotlib.pyplot as plt
-import tkinter as tk
-from tkinter import filedialog
-import os
-import glob
-
-root = tk.Tk()
-root.withdraw()
 
 st.set_page_config(
     page_title="Level Product Analytics",
